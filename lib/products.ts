@@ -196,6 +196,8 @@ export const CONCERNS = [
   "ニキビ・肌荒れ",
   "テカリ・皮脂",
   "ごわつき・かたさ",
+  "シミ・色ムラ",
+  "シワ・たるみ",
 ];
 
 export const IDEALS = [
