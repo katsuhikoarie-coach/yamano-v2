@@ -14,16 +14,22 @@ export async function POST(req: NextRequest) {
     });
 
     // Gemini用にメッセージ形式を変換
-    // 最後のユーザーメッセージを取り出し、残りをhistoryにする
-    const history = messages.slice(0, -1).map((m: { role: string; content: string }) => ({
+    const allConverted = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
-    const lastMessage = messages[messages.length - 1];
+    // 最後のメッセージ（user）を取り出す
+    const lastMessage = allConverted[allConverted.length - 1];
+    const historyRaw = allConverted.slice(0, -1);
+
+    // historyはuserから始まり、user/modelが交互である必要がある
+    // userから始まる部分だけ残す
+    const firstUserIdx = historyRaw.findIndex((m: { role: string }) => m.role === "user");
+    const history = firstUserIdx >= 0 ? historyRaw.slice(firstUserIdx) : [];
 
     const chat = model.startChat({ history });
-    const result = await chat.sendMessageStream(lastMessage.content);
+    const result = await chat.sendMessageStream(lastMessage.parts[0].text);
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
