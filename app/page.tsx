@@ -68,9 +68,9 @@ export default function Home() {
   };
 
   const extractProductIds = (text: string): string[] => {
-    const match = text.match(/【RECOMMEND:([^】]+)】/);
-    if (!match) return [];
-    return match[1].split(",").map((id: string) => id.trim());
+    const matches = [...text.matchAll(/【RECOMMEND:([^】]+)】/g)];
+    if (matches.length === 0) return [];
+    return matches.flatMap(m => m[1].split(",").map((id: string) => id.trim()));
   };
 
   const cleanText = (text: string): string => {
