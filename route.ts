@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { messages } = await req.json();
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-2.5-flash",
       systemInstruction: buildSystemPrompt(),
     });
 
