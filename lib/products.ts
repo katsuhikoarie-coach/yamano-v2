@@ -208,6 +208,8 @@ export const IDEALS = [
   "肌トラブルのない健やかな素肌",
   "洗練されたすっぴん美人",
   "シンプルケアで整う肌",
+  "弾力のある肌",
+  "血色の良い肌",
 ];
 
 export function getRecommendedProducts(
