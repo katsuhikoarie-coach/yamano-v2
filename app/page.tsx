@@ -25,7 +25,9 @@ export default function Home() {
   const [hasEnded, setHasEnded] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const [staffNote, setStaffNote] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetch("/api/products").then((r) => r.json()).then(setProducts);
@@ -61,8 +63,13 @@ export default function Home() {
   };
 
   const confirmIdeals = async () => {
-    if (selectedIdeals.length === 0) return;
-    await sendToAI("なりたいお肌：" + selectedIdeals.join("、"), "chat");
+    const parts: string[] = [];
+    if (selectedIdeals.length > 0) parts.push("なりたいお肌：" + selectedIdeals.join("、"));
+    if (staffNote.trim()) parts.push(staffNote.trim());
+    if (parts.length === 0) return;
+    const text = parts.join("\n");
+    setStaffNote("");
+    await sendToAI(text, "chat");
   };
 
   const sendText = async () => {
@@ -195,6 +202,7 @@ export default function Home() {
     setSelectedConcerns([]);
     setSelectedIdeals([]);
     setInputText("");
+    setStaffNote("");
     setHasEnded(false);
     setSuggestions([]);
     setGoalsOpen(false);
@@ -296,7 +304,7 @@ export default function Home() {
                 onClick={() => setGoalsOpen((v) => !v)}
               >
                 <span>
-                  お肌の目標を選ぶ
+                  お肌の目標を選ぶ（任意）
                   {selectedIdeals.length > 0 && (
                     <span className="goals-toggle-count">（{selectedIdeals.length}件選択中）</span>
                   )}
@@ -316,24 +324,45 @@ export default function Home() {
                   ))}
                 </div>
               )}
-              <button
-                className="btn-confirm"
-                disabled={selectedIdeals.length === 0}
-                onClick={confirmIdeals}
-              >
-                相談する →
-              </button>
+              <div className="text-input-wrap">
+                <textarea
+                  className="text-input"
+                  placeholder="お客様の言葉をそのまま入力（例：乾燥が気になる、化粧のりが悪い）"
+                  value={staffNote}
+                  onChange={(e) => setStaffNote(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (selectedIdeals.length > 0 || staffNote.trim()) confirmIdeals();
+                    }
+                  }}
+                  onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 300)}
+                  rows={2}
+                />
+                <button
+                  className="btn-send"
+                  onClick={confirmIdeals}
+                  disabled={selectedIdeals.length === 0 && !staffNote.trim()}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 
           {step === "chat" && !isStreaming && (
             <div className="text-input-wrap">
               <textarea
+                ref={chatInputRef}
                 className="text-input"
-                placeholder="気になることをなんでも聞いてください..."
+                placeholder="お客様の言葉や質問を入力..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 300)}
                 rows={2}
               />
               <button className="btn-send" onClick={sendText} disabled={!inputText.trim()}>
