@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PRODUCTS, Product } from "@/lib/products";
 
-// In-memory store — initialized from lib/products.ts on first load
-// Persists across requests on a single Node.js process (Render)
-let store: Product[] = JSON.parse(JSON.stringify(PRODUCTS));
+// Vercel KV が使える環境（本番）かどうかを判定
+const USE_KV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+const KV_KEY = "yamano_products";
+
+// ローカル開発用フォールバック（インメモリ）
+let memoryStore: Product[] | null = null;
+
+async function getProducts(): Promise<Product[]> {
+  if (USE_KV) {
+    const { kv } = await import("@vercel/kv");
+    return (await kv.get<Product[]>(KV_KEY)) ?? JSON.parse(JSON.stringify(PRODUCTS));
+  }
+  return memoryStore ?? JSON.parse(JSON.stringify(PRODUCTS));
+}
+
+async function saveProducts(products: Product[]): Promise<void> {
+  if (USE_KV) {
+    const { kv } = await import("@vercel/kv");
+    await kv.set(KV_KEY, products);
+  } else {
+    memoryStore = products;
+  }
+}
 
 function checkAuth(req: NextRequest): boolean {
   const pw = req.headers.get("x-admin-password");
@@ -11,7 +31,8 @@ function checkAuth(req: NextRequest): boolean {
 }
 
 export async function GET() {
-  return NextResponse.json(store);
+  const products = await getProducts();
+  return NextResponse.json(products);
 }
 
 export async function PUT(req: NextRequest) {
@@ -19,10 +40,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body: Product[] = await req.json();
-  // Auto-update priceLabel when price changes
-  store = body.map((p) => ({
+  const updated = body.map((p) => ({
     ...p,
     priceLabel: `¥${Number(p.price).toLocaleString("ja-JP")}`,
   }));
+  await saveProducts(updated);
   return NextResponse.json({ ok: true });
 }
