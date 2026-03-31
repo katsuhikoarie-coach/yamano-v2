@@ -21,18 +21,22 @@ function parseCSVLine(line: string): string[] {
 
 type CSVRow = { id: string; name: string; price: number };
 
-function parseCSV(text: string): { rows: CSVRow[]; skippedCount: number } {
+function parseCSV(text: string, genreFilter: string): { rows: CSVRow[]; skippedCount: number } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   let skippedCount = 0;
   const rows: CSVRow[] = [];
+  const allowedGenres = genreFilter.split(",").map((s) => s.trim()).filter(Boolean);
   for (const line of lines.slice(1)) {
     const cols = parseCSVLine(line);
     const id = cols[0]?.replace(/\s/g, "").trim();
     const name = cols[1]?.replace(/\s+/g, " ").trim();
     const price = parseFloat(cols[2]?.trim() || "0");
+    const genre = cols[3]?.replace(/"/g, "").trim();
     const discontinued = cols[4]?.trim();
     if (!id || !name) continue;
     if (discontinued === "1" || price === 0) { skippedCount++; continue; }
+    // ジャンルフィルタ（入力があれば適用）
+    if (allowedGenres.length > 0 && !allowedGenres.includes(genre)) { skippedCount++; continue; }
     rows.push({ id, name, price });
   }
   return { rows, skippedCount };
@@ -56,7 +60,9 @@ export default function AdminPage() {
 
   // CSV import state
   const [csvFileName, setCsvFileName] = useState("");
+  const [csvText, setCsvText] = useState("");
   const [csvPreview, setCsvPreview] = useState<CSVPreview | null>(null);
+  const [genreFilter, setGenreFilter] = useState("1");
   const [includeNew, setIncludeNew] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -83,6 +89,11 @@ export default function AdminPage() {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   };
 
+  const deleteProduct = (id: string) => {
+    if (!confirm(`ID: ${id} の商品を削除しますか？`)) return;
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMsg("");
@@ -99,6 +110,21 @@ export default function AdminPage() {
   };
 
   // ── CSV ハンドラ ──
+  const buildPreview = (text: string, filter: string) => {
+    const { rows, skippedCount } = parseCSV(text, filter);
+    const currentMap = new Map(products.map((p) => [p.id, p]));
+    const updates: CSVPreview["updates"] = [];
+    const newItems: CSVRow[] = [];
+    for (const row of rows) {
+      if (currentMap.has(row.id)) {
+        updates.push({ ...row, currentName: currentMap.get(row.id)!.name });
+      } else {
+        newItems.push(row);
+      }
+    }
+    setCsvPreview({ updates, newItems, skippedCount });
+  };
+
   const handleCSVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -107,20 +133,15 @@ export default function AdminPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
-      const { rows, skippedCount } = parseCSV(text);
-      const currentMap = new Map(products.map((p) => [p.id, p]));
-      const updates: CSVPreview["updates"] = [];
-      const newItems: CSVRow[] = [];
-      for (const row of rows) {
-        if (currentMap.has(row.id)) {
-          updates.push({ ...row, currentName: currentMap.get(row.id)!.name });
-        } else {
-          newItems.push(row);
-        }
-      }
-      setCsvPreview({ updates, newItems, skippedCount });
+      setCsvText(text);
+      buildPreview(text, genreFilter);
     };
     reader.readAsText(file, "UTF-8");
+  };
+
+  const handleGenreFilterChange = (value: string) => {
+    setGenreFilter(value);
+    if (csvText) buildPreview(csvText, value);
   };
 
   const handleImport = async () => {
@@ -205,6 +226,19 @@ export default function AdminPage() {
               <br />終息フラグ=1・価格0の商品は自動でスキップされます。
             </p>
 
+            <div className="admin-field">
+              <label>ジャンルコードで絞り込み（カンマ区切りで複数指定可・空欄で全件）</label>
+              <div className="admin-genre-row">
+                <input
+                  className="admin-input"
+                  value={genreFilter}
+                  onChange={(e) => handleGenreFilterChange(e.target.value)}
+                  placeholder="例: 1　または　1,3"
+                />
+                <span className="admin-genre-hint">1=化粧品　2=寝具　3=サービス</span>
+              </div>
+            </div>
+
             <label className="admin-file-label">
               <input type="file" accept=".csv" onChange={handleCSVChange} style={{ display: "none" }} />
               <span className="admin-file-btn">CSVを選択</span>
@@ -276,6 +310,7 @@ export default function AdminPage() {
             <div className="admin-product-meta">
               <span className="admin-product-id">ID: {p.id}</span>
               <span className="admin-product-series">{p.series}</span>
+              <button className="admin-btn-delete" onClick={() => deleteProduct(p.id)}>削除</button>
             </div>
             <div className="admin-field">
               <label>商品名</label>
