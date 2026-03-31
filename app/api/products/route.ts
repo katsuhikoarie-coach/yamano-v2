@@ -1,25 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PRODUCTS, Product } from "@/lib/products";
 
-// Vercel KV が使える環境（本番）かどうかを判定
-const USE_KV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-const KV_KEY = "yamano_products";
+const USE_REDIS = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+const REDIS_KEY = "yamano_products";
 
 // ローカル開発用フォールバック（インメモリ）
 let memoryStore: Product[] | null = null;
 
 async function getProducts(): Promise<Product[]> {
-  if (USE_KV) {
-    const { kv } = await import("@vercel/kv");
-    return (await kv.get<Product[]>(KV_KEY)) ?? JSON.parse(JSON.stringify(PRODUCTS));
+  if (USE_REDIS) {
+    const { Redis } = await import("@upstash/redis");
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+    return (await redis.get<Product[]>(REDIS_KEY)) ?? JSON.parse(JSON.stringify(PRODUCTS));
   }
   return memoryStore ?? JSON.parse(JSON.stringify(PRODUCTS));
 }
 
 async function saveProducts(products: Product[]): Promise<void> {
-  if (USE_KV) {
-    const { kv } = await import("@vercel/kv");
-    await kv.set(KV_KEY, products);
+  if (USE_REDIS) {
+    const { Redis } = await import("@upstash/redis");
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+    await redis.set(REDIS_KEY, products);
   } else {
     memoryStore = products;
   }
