@@ -24,6 +24,7 @@ export default function Home() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -196,6 +197,7 @@ export default function Home() {
     setInputText("");
     setHasEnded(false);
     setSuggestions([]);
+    setGoalsOpen(false);
   };
 
   return (
@@ -289,18 +291,31 @@ export default function Home() {
 
           {step === "ideal" && !isStreaming && (
             <div className="selector-wrap">
-              <p className="selector-label">どんなお肌になりたいですか？（複数可）</p>
-              <div className="selector-chips">
-                {goals.filter((g) => g.enabled).map((g) => (
-                  <button
-                    key={g.id}
-                    className={"chip" + (selectedIdeals.includes(g.label) ? " selected" : "")}
-                    onClick={() => toggleIdeal(g.label)}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
+              <button
+                className="goals-toggle"
+                onClick={() => setGoalsOpen((v) => !v)}
+              >
+                <span>
+                  お肌の目標を選ぶ
+                  {selectedIdeals.length > 0 && (
+                    <span className="goals-toggle-count">（{selectedIdeals.length}件選択中）</span>
+                  )}
+                </span>
+                <span className="goals-toggle-icon">{goalsOpen ? "▲" : "▼"}</span>
+              </button>
+              {goalsOpen && (
+                <div className="selector-chips">
+                  {goals.filter((g) => g.enabled).map((g) => (
+                    <button
+                      key={g.id}
+                      className={"chip" + (selectedIdeals.includes(g.label) ? " selected" : "")}
+                      onClick={() => toggleIdeal(g.label)}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <button
                 className="btn-confirm"
                 disabled={selectedIdeals.length === 0}
