@@ -118,6 +118,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          products, // DB上の全商品をAIコンテキストに渡す
         }),
       });
 
