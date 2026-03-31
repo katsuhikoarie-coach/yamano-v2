@@ -119,3 +119,33 @@ html, body { height: 100%; font-family: var(--font-ja); background: var(--cream)
 .admin-error { font-size: 12px; color: #c44; letter-spacing: .03em; }
 .admin-save-msg { font-size: 13px; color: var(--earth); font-weight: 400; }
 .admin-footer-note { font-size: 11px; color: var(--text-light); text-align: center; padding: 20px 16px 32px; letter-spacing: .03em; font-weight: 300; }
+
+/* ── CSV インポート ── */
+.admin-import-section { border-bottom: 1px solid var(--border); }
+.admin-import-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--cream); border: none; cursor: pointer; font-family: var(--font-ja); font-size: 14px; font-weight: 400; letter-spacing: .08em; color: var(--earth); transition: background .2s; }
+.admin-import-toggle:hover { background: var(--cream-dark); }
+.admin-import-toggle-icon { font-size: 10px; color: var(--text-light); }
+.admin-import-body { padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 14px; background: var(--white); }
+.admin-import-note { font-size: 11px; color: var(--text-light); line-height: 1.8; letter-spacing: .02em; }
+.admin-file-label { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.admin-file-btn { font-family: var(--font-ja); font-size: 13px; font-weight: 400; letter-spacing: .08em; color: var(--earth); border: 1px solid var(--earth); background: var(--white); padding: 8px 16px; border-radius: 20px; white-space: nowrap; transition: all .2s; }
+.admin-file-label:hover .admin-file-btn { background: var(--earth); color: var(--white); }
+.admin-file-name { font-size: 12px; color: var(--text-soft); font-weight: 300; }
+.admin-csv-preview { display: flex; flex-direction: column; gap: 14px; }
+.admin-csv-stats { display: flex; gap: 10px; }
+.admin-csv-stat-box { flex: 1; background: var(--cream); border-radius: 10px; padding: 10px 12px; text-align: center; }
+.admin-csv-stat-box.new { background: #eef6ee; }
+.admin-csv-stat-box.skip { background: #f5f5f5; }
+.admin-csv-stat-num { display: block; font-family: var(--font-serif); font-size: 22px; font-weight: 300; color: var(--mud); line-height: 1.2; }
+.admin-csv-stat-label { font-size: 11px; color: var(--text-light); letter-spacing: .05em; }
+.admin-csv-list { background: var(--cream); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.admin-csv-list-title { font-size: 11px; letter-spacing: .1em; color: var(--text-soft); font-weight: 400; margin-bottom: 2px; }
+.admin-csv-item { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.admin-csv-id { background: var(--border); padding: 2px 7px; border-radius: 10px; font-size: 11px; color: var(--text-soft); white-space: nowrap; }
+.admin-csv-old { color: var(--text-light); font-weight: 300; }
+.admin-csv-arrow { color: var(--amber); font-size: 11px; }
+.admin-csv-new { color: var(--text); font-weight: 400; }
+.admin-csv-more { font-size: 11px; color: var(--text-light); text-align: center; }
+.admin-checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft); font-weight: 300; cursor: pointer; }
+.admin-checkbox-label input { accent-color: var(--earth); width: 16px; height: 16px; cursor: pointer; }
+.admin-csv-warn { font-size: 12px; color: #b85; letter-spacing: .03em; }
