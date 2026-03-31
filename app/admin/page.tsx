@@ -43,6 +43,24 @@ function parseCSV(text: string, genreFilter: string): { rows: CSVRow[]; skippedC
   return { rows, skippedCount };
 }
 
+/**
+ * 商品名からシリーズ名を推定する
+ * 例: "YAMANO ZERO モイストクリーム" → "ZERO"
+ */
+function guessSeriesFromName(name: string): string {
+  const KNOWN_SERIES = [
+    "ZERO", "ゼロ", "美道", "Mu-2", "MU-2", "KO・HA・KU", "琥珀",
+    "ドロンコクレー", "クレオリ", "どろんこ",
+  ];
+  const upper = name.toUpperCase();
+  for (const s of KNOWN_SERIES) {
+    if (upper.includes(s.toUpperCase())) return s;
+  }
+  // 「シリーズ名 商品名」パターン（先頭の英大文字・カタカナ語を取得）
+  const m = name.match(/^([A-Z][A-Z0-9\-]{1,}|[ァ-ヶー]{2,})/);
+  return m ? m[1] : "";
+}
+
 type CSVPreview = {
   updates: { id: string; name: string; price: number; currentName: string }[];
   newItems: CSVRow[];
@@ -148,8 +166,11 @@ export default function AdminPage() {
     setSaving(false);
     if (res.ok) { setMsg("✓ 保存しました"); }
     else if (res.status === 401) { setMsg("パスワードエラー — 再ログインしてください"); setAuthed(false); }
-    else { setMsg("エラーが発生しました"); }
-    setTimeout(() => setMsg(""), 3000);
+    else {
+      const detail = await res.text().catch(() => "");
+      setMsg(`保存エラー(${res.status})${detail ? ": " + detail.slice(0, 60) : ""}`);
+    }
+    setTimeout(() => setMsg(""), 5000);
   };
 
   // ── CSV ハンドラ ──
@@ -201,7 +222,7 @@ export default function AdminPage() {
       ? csvPreview.newItems.map((row) => ({
           id: row.id, name: row.name, price: row.price,
           priceLabel: `¥${row.price.toLocaleString("ja-JP")}`,
-          series: "", category: "other" as const,
+          series: guessSeriesFromName(row.name), category: "other" as const,
           concern: [], ideal: [], catchcopy: "", description: "", url: "",
         }))
       : [];
@@ -219,8 +240,9 @@ export default function AdminPage() {
       setMsg(`✓ インポート完了（更新${csvPreview.updates.length}件${includeNew ? `・追加${csvPreview.newItems.length}件` : ""}）`);
       setTimeout(() => setMsg(""), 4000);
     } else {
-      setMsg("エラーが発生しました");
-      setTimeout(() => setMsg(""), 3000);
+      const detail = await res.text().catch(() => "");
+      setMsg(`エラー(${res.status})${detail ? ": " + detail.slice(0, 60) : ""}`);
+      setTimeout(() => setMsg(""), 5000);
     }
     setImporting(false);
   };
@@ -246,7 +268,10 @@ export default function AdminPage() {
   return (
     <div className="admin-root">
       <header className="admin-header">
-        <h1 className="admin-title">商品管理</h1>
+        <div>
+          <h1 className="admin-title">商品管理</h1>
+          <p className="admin-login-note">現在 {products.length} 件がRedisに保存済み</p>
+        </div>
         <div className="admin-header-right">
           {msg && <span className="admin-save-msg">{msg}</span>}
           <button className="admin-btn-primary" onClick={handleSave} disabled={saving}>
