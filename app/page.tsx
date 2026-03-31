@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { PRODUCTS, CONCERNS, IDEALS, Product } from "@/lib/products";
+import { CONCERNS, IDEALS, Product } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 
 type Message = {
@@ -13,6 +13,7 @@ type Message = {
 type Step = "concern" | "ideal" | "chat";
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [step, setStep] = useState<Step>("concern");
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
@@ -20,9 +21,11 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    fetch("/api/products").then((r) => r.json()).then(setProducts);
     setMessages([
       {
         role: "assistant",
@@ -34,7 +37,7 @@ export default function Home() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, suggestions]);
 
   const toggleConcern = (c: string) => {
     setSelectedConcerns((prev) =>
@@ -50,31 +53,44 @@ export default function Home() {
 
   const confirmConcerns = async () => {
     if (selectedConcerns.length === 0) return;
-    const userMsg = "気になる悩み：" + selectedConcerns.join("、");
-    await sendToAI(userMsg, "ideal");
+    await sendToAI("気になる悩み：" + selectedConcerns.join("、"), "ideal");
   };
 
   const confirmIdeals = async () => {
     if (selectedIdeals.length === 0) return;
-    const userMsg = "なりたいお肌：" + selectedIdeals.join("、");
-    await sendToAI(userMsg, "chat");
+    await sendToAI("なりたいお肌：" + selectedIdeals.join("、"), "chat");
   };
 
   const sendText = async () => {
     if (!inputText.trim() || isStreaming) return;
     const text = inputText.trim();
     setInputText("");
+    setSuggestions([]);
     await sendToAI(text, "chat");
+  };
+
+  const sendSuggestion = async (q: string) => {
+    setSuggestions([]);
+    await sendToAI(q, "chat");
   };
 
   const extractProductIds = (text: string): string[] => {
     const matches = [...text.matchAll(/【RECOMMEND:([^】]+)】/g)];
     if (matches.length === 0) return [];
-    return matches.flatMap(m => m[1].split(",").map((id: string) => id.trim()));
+    return matches.flatMap((m) => m[1].split(",").map((id) => id.trim()));
+  };
+
+  const extractQuestions = (text: string): string[] => {
+    const match = text.match(/【QUESTIONS:([^】]+)】/);
+    if (!match) return [];
+    return match[1].split("|").map((q) => q.trim()).filter(Boolean);
   };
 
   const cleanText = (text: string): string => {
-    return text.replace(/【RECOMMEND:[^】]+】/g, "").trim();
+    return text
+      .replace(/【RECOMMEND:[^】]+】/g, "")
+      .replace(/【QUESTIONS:[^】]+】/g, "")
+      .trim();
   };
 
   const sendToAI = async (userContent: string, nextStep: Step) => {
@@ -83,22 +99,15 @@ export default function Home() {
     setMessages(newMessages);
     setStep(nextStep);
     setIsStreaming(true);
-
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: "" },
-    ]);
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
-      const apiMessages = newMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({
+          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+        }),
       });
 
       const reader = res.body?.getReader();
@@ -109,8 +118,7 @@ export default function Home() {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-        for (const line of lines) {
+        for (const line of chunk.split("\n")) {
           if (line.startsWith("data: ") && line !== "data: [DONE]") {
             try {
               const data = JSON.parse(line.slice(6));
@@ -129,21 +137,21 @@ export default function Home() {
       }
 
       const productIds = extractProductIds(fullText);
-      if (productIds.length > 0) {
-        const products = productIds
-          .map((id: string) => PRODUCTS.find((p) => p.id === id))
-          .filter((p: Product | undefined): p is Product => !!p);
+      const foundProducts = productIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is Product => !!p);
+      const questions = extractQuestions(fullText);
 
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content: cleanText(fullText),
-            products,
-          };
-          return updated;
-        });
-      }
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: cleanText(fullText),
+          ...(foundProducts.length > 0 ? { products: foundProducts } : {}),
+        };
+        return updated;
+      });
+      setSuggestions(questions);
     } catch (e) {
       console.error(e);
     } finally {
@@ -160,6 +168,7 @@ export default function Home() {
 
   const handleEnd = () => {
     setHasEnded(true);
+    setSuggestions([]);
     setMessages((prev) => [
       ...prev,
       {
@@ -183,6 +192,7 @@ export default function Home() {
     setSelectedIdeals([]);
     setInputText("");
     setHasEnded(false);
+    setSuggestions([]);
   };
 
   return (
@@ -209,9 +219,7 @@ export default function Home() {
         <div className="messages-wrap">
           {messages.map((msg, i) => (
             <div key={i} className={"message-row " + msg.role}>
-              {msg.role === "assistant" && (
-                <div className="avatar">朝</div>
-              )}
+              {msg.role === "assistant" && <div className="avatar">朝</div>}
               <div className="message-bubble-wrap">
                 <div className="message-bubble">
                   {msg.content.split("\n").map((line, j) => (
@@ -234,6 +242,18 @@ export default function Home() {
               </div>
             </div>
           ))}
+
+          {!isStreaming && suggestions.length > 0 && (
+            <div className="suggestions-wrap">
+              <p className="suggestions-label">次に聞いてみる</p>
+              {suggestions.map((q, i) => (
+                <button key={i} className="suggestion-btn" onClick={() => sendSuggestion(q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
       </main>
@@ -298,14 +318,10 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 rows={2}
               />
-              <button
-                className="btn-send"
-                onClick={sendText}
-                disabled={!inputText.trim()}
-              >
+              <button className="btn-send" onClick={sendText} disabled={!inputText.trim()}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>
@@ -313,7 +329,9 @@ export default function Home() {
 
           {isStreaming && (
             <div className="streaming-indicator">
-              <span className="dot" /><span className="dot" /><span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
             </div>
           )}
         </footer>

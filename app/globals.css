@@ -87,3 +87,35 @@ html, body { height: 100%; font-family: var(--font-ja); background: var(--cream)
 .chat-area::-webkit-scrollbar { width: 4px; }
 .chat-area::-webkit-scrollbar-track { background: transparent; }
 .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── サジェスト質問 ── */
+.suggestions-wrap { padding: 0 16px 4px; display: flex; flex-direction: column; gap: 8px; margin-left: 48px; }
+.suggestions-label { font-size: 11px; letter-spacing: .12em; color: var(--text-light); font-weight: 300; }
+.suggestion-btn { font-family: var(--font-ja); font-size: 14px; font-weight: 300; letter-spacing: .03em; color: var(--earth); background: var(--white); border: 1px solid var(--earth); padding: 11px 16px; border-radius: 12px; cursor: pointer; text-align: left; line-height: 1.5; transition: all .2s; }
+.suggestion-btn:hover { background: var(--earth); color: var(--white); }
+
+/* ── 管理画面 ── */
+.admin-login { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--cream); }
+.admin-login-box { background: var(--white); padding: 40px 32px; border-radius: 16px; display: flex; flex-direction: column; gap: 16px; width: 320px; box-shadow: 0 4px 32px rgba(60,40,20,.12); }
+.admin-login-note { font-size: 13px; color: var(--text-light); font-weight: 300; letter-spacing: .05em; }
+.admin-root { max-width: 720px; margin: 0 auto; min-height: 100dvh; background: var(--cream); }
+.admin-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--white); z-index: 10; box-shadow: 0 2px 12px rgba(60,40,20,.05); }
+.admin-title { font-family: var(--font-serif); font-size: 20px; font-weight: 300; letter-spacing: .2em; color: var(--mud); }
+.admin-header-right { display: flex; align-items: center; gap: 12px; }
+.admin-products { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.admin-product-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.admin-product-meta { display: flex; gap: 10px; align-items: center; }
+.admin-product-id { font-size: 11px; letter-spacing: .1em; color: var(--text-light); font-weight: 300; background: var(--cream); padding: 2px 8px; border-radius: 20px; }
+.admin-product-series { font-size: 11px; letter-spacing: .1em; color: var(--amber); font-weight: 400; }
+.admin-field { display: flex; flex-direction: column; gap: 5px; }
+.admin-field label { font-size: 11px; letter-spacing: .1em; color: var(--text-soft); font-weight: 300; }
+.admin-input { font-family: var(--font-ja); font-size: 15px; font-weight: 300; color: var(--text); background: var(--cream); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; outline: none; width: 100%; transition: border-color .2s; }
+.admin-input:focus { border-color: var(--earth); background: var(--white); }
+.admin-textarea { font-family: var(--font-ja); font-size: 14px; font-weight: 300; color: var(--text); background: var(--cream); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; outline: none; width: 100%; resize: vertical; line-height: 1.7; transition: border-color .2s; }
+.admin-textarea:focus { border-color: var(--earth); background: var(--white); }
+.admin-btn-primary { font-family: var(--font-ja); font-size: 14px; font-weight: 400; letter-spacing: .1em; color: var(--white); background: var(--earth); border: none; padding: 10px 22px; border-radius: 24px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+.admin-btn-primary:hover:not(:disabled) { background: var(--earth-dark); }
+.admin-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.admin-error { font-size: 12px; color: #c44; letter-spacing: .03em; }
+.admin-save-msg { font-size: 13px; color: var(--earth); font-weight: 400; }
+.admin-footer-note { font-size: 11px; color: var(--text-light); text-align: center; padding: 20px 16px 32px; letter-spacing: .03em; font-weight: 300; }
