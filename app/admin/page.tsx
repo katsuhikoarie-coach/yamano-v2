@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Product } from "@/lib/products";
+import { SkinGoal } from "@/lib/goals";
 
 // ── CSV パース ──────────────────────────────────────────
 function parseCSVLine(line: string): string[] {
@@ -58,6 +59,12 @@ export default function AdminPage() {
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // スキンゴール state
+  const [goals, setGoals] = useState<SkinGoal[]>([]);
+  const [goalsSaving, setGoalsSaving] = useState(false);
+  const [goalsMsg, setGoalsMsg] = useState("");
+  const [goalsOpen, setGoalsOpen] = useState(false);
+
   // CSV import state
   const [csvFileName, setCsvFileName] = useState("");
   const [csvText, setCsvText] = useState("");
@@ -71,6 +78,7 @@ export default function AdminPage() {
     fetch("/api/products")
       .then((r) => r.json())
       .then((data) => { setProducts(data); setLoading(false); });
+    fetch("/api/goals").then((r) => r.json()).then(setGoals);
   }, []);
 
   const handleLogin = async () => {
@@ -87,6 +95,41 @@ export default function AdminPage() {
 
   const updateField = (id: string, field: keyof Product, value: string | number) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+  };
+
+  // ── スキンゴール ハンドラ ──
+  const updateGoal = (id: string, field: keyof SkinGoal, value: string | boolean) => {
+    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
+  };
+
+  const moveGoal = (index: number, dir: -1 | 1) => {
+    const next = index + dir;
+    if (next < 0 || next >= goals.length) return;
+    const arr = [...goals];
+    [arr[index], arr[next]] = [arr[next], arr[index]];
+    setGoals(arr);
+  };
+
+  const addGoal = () => {
+    const id = `g${Date.now()}`;
+    setGoals((prev) => [...prev, { id, label: "", enabled: true }]);
+  };
+
+  const deleteGoal = (id: string) => {
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+  };
+
+  const handleSaveGoals = async () => {
+    setGoalsSaving(true);
+    setGoalsMsg("");
+    const res = await fetch("/api/goals", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-admin-password": pw },
+      body: JSON.stringify(goals),
+    });
+    setGoalsSaving(false);
+    setGoalsMsg(res.ok ? "✓ 保存しました" : "エラーが発生しました");
+    setTimeout(() => setGoalsMsg(""), 3000);
   };
 
   const deleteProduct = (id: string) => {
@@ -299,6 +342,53 @@ export default function AdminPage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* スキンゴール設定 */}
+      <div className="admin-import-section">
+        <button className="admin-import-toggle" onClick={() => setGoalsOpen((v) => !v)}>
+          <span>スキンゴール設定</span>
+          <span className="admin-import-toggle-icon">{goalsOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {goalsOpen && (
+          <div className="admin-import-body">
+            <p className="admin-import-note">
+              「どんなお肌になりたいですか？」の選択肢を管理します。
+            </p>
+            <div className="admin-goals-list">
+              {goals.map((g, i) => (
+                <div key={g.id} className="admin-goal-row">
+                  <div className="admin-goal-move">
+                    <button onClick={() => moveGoal(i, -1)} disabled={i === 0}>↑</button>
+                    <button onClick={() => moveGoal(i, 1)} disabled={i === goals.length - 1}>↓</button>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="admin-goal-toggle"
+                    checked={g.enabled}
+                    onChange={(e) => updateGoal(g.id, "enabled", e.target.checked)}
+                    title={g.enabled ? "表示中（クリックで非表示）" : "非表示（クリックで表示）"}
+                  />
+                  <input
+                    className="admin-input admin-goal-input"
+                    value={g.label}
+                    onChange={(e) => updateGoal(g.id, "label", e.target.value)}
+                    placeholder="ボタンのテキスト"
+                  />
+                  <button className="admin-btn-delete" onClick={() => deleteGoal(g.id)}>削除</button>
+                </div>
+              ))}
+            </div>
+            <button className="admin-btn-add" onClick={addGoal}>＋ 追加</button>
+            <div className="admin-goals-footer">
+              {goalsMsg && <span className="admin-save-msg">{goalsMsg}</span>}
+              <button className="admin-btn-primary" onClick={handleSaveGoals} disabled={goalsSaving}>
+                {goalsSaving ? "保存中..." : "スキンゴールを保存"}
+              </button>
+            </div>
           </div>
         )}
       </div>

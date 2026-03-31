@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { CONCERNS, IDEALS, Product } from "@/lib/products";
+import { CONCERNS, Product } from "@/lib/products";
+import { SkinGoal } from "@/lib/goals";
 import { ProductCard } from "@/components/ProductCard";
 
 type Message = {
@@ -14,6 +15,7 @@ type Step = "concern" | "ideal" | "chat";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [goals, setGoals] = useState<SkinGoal[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [step, setStep] = useState<Step>("concern");
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
@@ -26,6 +28,7 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/products").then((r) => r.json()).then(setProducts);
+    fetch("/api/goals").then((r) => r.json()).then(setGoals);
     setMessages([
       {
         role: "assistant",
@@ -288,13 +291,13 @@ export default function Home() {
             <div className="selector-wrap">
               <p className="selector-label">どんなお肌になりたいですか？（複数可）</p>
               <div className="selector-chips">
-                {IDEALS.map((id) => (
+                {goals.filter((g) => g.enabled).map((g) => (
                   <button
-                    key={id}
-                    className={"chip" + (selectedIdeals.includes(id) ? " selected" : "")}
-                    onClick={() => toggleIdeal(id)}
+                    key={g.id}
+                    className={"chip" + (selectedIdeals.includes(g.label) ? " selected" : "")}
+                    onClick={() => toggleIdeal(g.label)}
                   >
-                    {id}
+                    {g.label}
                   </button>
                 ))}
               </div>
